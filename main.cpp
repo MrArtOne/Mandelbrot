@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <numeric>
 #include <complex>
+#include <vector>
 
 int isInSet(std::complex<double> c)
 {
@@ -25,13 +26,17 @@ bool waiter = true;
 
 int main()
 {
-        SDL_Init(SDL_INIT_EVERYTHING);
-        SDL_Window* window = SDL_CreateWindow("Mandelbrot", 0, 0, 1920, 1080, SDL_WINDOW_FULLSCREEN);
-        SDL_Renderer* renderer = SDL_CreateRenderer(window, 1, 0);
-    //    SDL_CreateWindowAndRenderer(1000, 1000, 0, &window, &renderer);
-        SDL_RenderSetScale(renderer, 1, 1);
+    SDL_Init(SDL_INIT_EVERYTHING);
+    SDL_Window* window = SDL_CreateWindow("Mandelbrot", 0, 0, 1920, 1080, SDL_WINDOW_FULLSCREEN);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, 2, SDL_RENDERER_ACCELERATED);
+//    SDL_CreateWindowAndRenderer(1000, 1000, 0, &window, &renderer);
+    SDL_RenderSetScale(renderer, 1, 1);
 
-        SDL_Event evt;
+    SDL_Texture* windowTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 1920, 1080);
+    std::vector<Uint32> pixels(1080*1920, 0);
+    int start = 0;
+
+    SDL_Event evt;
     while (run)
     {
         for (double x = 0.0; x < 1920.0; x += 1.0)
@@ -42,21 +47,18 @@ int main()
                 int iters = isInSet(std::complex<double>(point_x, point_y));
                 if(iters == 0)
                 {
-                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                    SDL_RenderDrawPointF(renderer, x, y);
+                    start = (y * 1920 + x);
+                    pixels[start] = (0 << 24U) | (0 << 16U) | (0 << 8U) | 255;
                 }
                 else
                 {
-                    SDL_SetRenderDrawColor(
-                        renderer,
-                        2 * iters % 255,
-                        3 * iters % 255,
-                        4 * iters % 255,
-                        255);
-                    SDL_RenderDrawPointF(renderer, x, y);
+                    start = (y * 1920 + x);
+                    pixels[start] = (2 * iters % 255 << 24U) | (3 * iters % 255 << 16U) | (4 * iters % 255 << 8U) | 255;
                 }
             }
-
+        SDL_UpdateTexture(windowTexture, nullptr, pixels.data(), 1920 * sizeof(Uint32));
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer, windowTexture, NULL, NULL);
         SDL_RenderPresent(renderer);
 
         waiter = true;
